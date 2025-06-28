@@ -93,7 +93,7 @@ Content-Type: application/json
       "yzbm": "邮政编码",
       "sjr": "收件人",
       "sjh": "手机号",
-      "bdsj": "变动时间",
+      "bdsj": "报到时间",
       "bz": "备注"
     }
   ],
