@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>录取查询系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .query-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .result-container {
+            margin-top: 30px;
+            display: none;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        @media (max-width: 576px) {
+            .query-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="query-container">
+            <div class="text-center mb-4">
+                <img src="img/logo.png" alt="高校logo" class="mb-3" style="max-height: 80px;">
+                <h2>录取查询系统</h2>
+                <div class="mb-3 text-center">
+                    <a href="#" id="showBatchesLink">[查看已公布结果的录取批次]</a>
+                </div>
+            </div>
+            <form id="queryForm">
+                <div class="mb-3">
+                    <label for="ksh" class="form-label">考生号</label>
+                    <input type="text" class="form-control" id="ksh" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="sfyzm" class="form-label">身份证后4位</label>
+                    <input type="text" class="form-control" id="sfyzm" maxlength="4" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">查询</button>
+            </form>
+
+            <div id="resultContainer" class="result-container">
+                <h4 class="mb-3">查询结果</h4>
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('queryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const ksh = document.getElementById('ksh').value;
+            const sfyzm = document.getElementById('sfyzm').value;
+            const resultContainer = document.getElementById('resultContainer');
+            const resultContent = document.getElementById('resultContent');
+            
+            // 显示加载状态
+            resultContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">加载中...</span></div></div>';
+            resultContainer.style.display = 'block';
+            
+            try {
+                console.log('发起查询请求:', {ksh, sfyzm});
+                const apiUrl = 'http://localhost:3000/api/admission/query';
+                const requestOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ksh, sfyzm })
+                };
+                console.log('请求配置:', {apiUrl, requestOptions});
+                
+                const response = await fetch(apiUrl, requestOptions);
+                console.log('收到响应:', response);
+                
+                const responseData = await response.json();
+                console.log('完整响应数据:', responseData);
+                
+                if (!response.ok || !responseData.success) {
+                    // 处理错误响应
+                    const errorMsg = responseData.error || '请求失败';
+                    const error = new Error(errorMsg);
+                    error.responseData = responseData; // 附加完整响应数据
+                    throw error;
+                }
+                
+                const data = responseData.data || {};
+                console.log('处理后数据:', data);
+                
+                // 处理字符串字段，去除多余空格
+                const trimData = {};
+                for (const key in data) {
+                  trimData[key] = typeof data[key] === 'string' ? data[key].trim() : data[key];
+                }
+                
+                if (responseData.success) {
+                    resultContent.innerHTML = `
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">${trimData.xm || '未提供'} (${trimData.xb || '未提供'})</h5>
+                                <p class="card-text">
+                                    <strong>考生号：</strong>${trimData.ksh || '未提供'}<br>
+                                    <strong>录取状态：</strong>${trimData.lqzt || '未提供'}<br>
+                                    <strong>科类：</strong>${trimData.klmc || '未提供'}<br>
+                                    <strong>投档成绩：</strong>${trimData.tdcj || '未提供'}<br>
+                                    <strong>院校名称：</strong>${trimData.yxmc || '未提供'}<br>
+                                    <strong>录取专业：</strong>${trimData.lqzymc || '未提供'}<br>
+                                    <strong>学院：</strong>${trimData.xymc || '未提供'}<br>
+                                    <strong>校区：</strong>${trimData.xqmc || '未提供'}<br>
+                                    <strong>报到时间：</strong>${trimData.bdsj || '未提供'}<br>
+                                    <strong>通知书编号：</strong>${trimData.tzsbh || '未提供'}<br>
+                                    <strong>邮寄地址：</strong>${trimData.jtdz || '未提供'}<br>
+                                    <strong>邮政编码：</strong>${trimData.yzbm || '未提供'}<br>
+                                    <strong>EMS单号：</strong>${trimData.emsdh || '未提供'}<br>
+                                    <strong>收件人：</strong>${trimData.sjr || '未提供'}<br>
+                                    <strong>收件电话：</strong>${trimData.sjh || '未提供'}<br>
+                                    <strong>查询次数：</strong>${trimData.cxcs || '0'}<br>
+                                   
+                                </p>
+                            </div>
+                        </div>
+                        
+                    `;
+                } else {
+                    console.error('查询错误:', data);
+                    // 获取完整的错误信息
+                    const errorData = error.responseData || { error: error.message };
+                    const errorMessage = errorData.error || error.message;
+                    
+                    resultContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5 class="mb-3">查询失败</h5>
+                            <p><strong>错误原因：</strong>${errorMessage}</p>
+                            
+                            ${errorMessage === '验证码错误' ? `
+                                <div class="alert alert-warning mt-3">
+                                    <p class="mb-1">请检查：</p>
+                                    <ul class="mb-0">
+                                        <li>确认输入的身份证后4位是否正确</li>
+                                        <li>身份证号码中的字母X需要大写</li>
+                                    </ul>
+                                </div>
+                            ` : errorMessage === '没有匹配的录取信息' ? `
+                                <div class="alert alert-warning mt-3">
+                                    <p class="mb-1">请检查：</p>
+                                    <ul class="mb-0">
+                                        <li>确认输入的考生号是否正确</li>
+                                        <li>确认是否在录取批次内</li>
+                                        <li>如有疑问，请联系招生办公室</li>
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            
+                            <hr>
+                            <div class="small text-muted">
+                                <p class="mb-1">请求URL: ${apiUrl}</p>
+                                <pre class="mb-0 small">${JSON.stringify({
+                                    request: {ksh, sfyzm},
+                                    response: errorData
+                                }, null, 2)}</pre>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                resultContainer.style.display = 'block';
+            } catch (error) {
+                resultContent.innerHTML = `
+                    <div class="alert alert-danger">对不起，没有查到匹配的录取信息。</div>
+                `;
+                resultContainer.style.display = 'block';
+            }
+        });
+    </script>
+
+    <!-- 添加本地Bootstrap JS -->
+    <script src="js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // 获取录取批次数据
+        document.getElementById('showBatchesLink').addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            const resultContainer = document.getElementById('resultContainer');
+            const resultContent = document.getElementById('resultContent');
+            
+            // 显示加载状态
+            resultContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">加载中...</span></div></div>';
+            resultContainer.style.display = 'block';
+            
+            try {
+                // 调用API获取批次数据 (改为POST请求)
+                const response = await fetch('http://localhost:3000/api/admission/batches', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        key: 'youngpig'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态码: ${response.status}`);
+                }
+                
+                const responseData = await response.json();
+                console.log('批次数据响应:', responseData);
+                
+                if (responseData.success) {
+                    const batches = responseData.data || [];
+                    
+                    if (batches.length === 0) {
+                        throw new Error('当前没有可显示的录取批次');
+                    }
+                    
+                    // 处理并显示批次数据
+                    const batchesList = batches.map(batch => {
+                        // 去除各字段空格并拼接
+                        const id = (batch.id !== undefined && batch.id !== null) ? batch.id.toString() : '';
+                        const pc = (batch.pc || '').trim();
+                        
+                        return `${id}.${pc}`;
+                    });
+                    
+                    resultContent.innerHTML = `
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">已公布录取批次</h5>
+                                <ul class="list-group">
+                                    ${batchesList.map(item => `
+                                        <li class="list-group-item">${item}</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            ${data.error || '获取批次数据失败'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        网络错误，请稍后再试
+                    </div>
+                `;
+                console.error('获取批次数据出错:', error);
+            }
+        });
+    </script>
+</body>
+</html>

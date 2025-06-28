@@ -1,0 +1,87 @@
+### 健康检查
+GET http://localhost:3000/api/admission/health
+
+### 考生查询
+POST http://localhost:3000/api/admission/query
+Content-Type: application/json
+
+{
+  "ksh": "20230001",
+  "sfyzm": "1234"
+}
+
+### 删除单个考生数据
+DELETE http://localhost:3000/api/admission/20230001
+Authorization: Bearer your_token_here
+
+### 获取最新查询批次 (返回ID和PC字段)
+POST http://localhost:3000/api/admission/batches
+Content-Type: application/json
+
+{
+  "key": "youngpig"
+}
+
+
+### 批量导入录取数据
+POST http://localhost:3000/api/admission/admin/import
+Content-Type: application/json
+Authorization: Bearer your_token_here
+
+{
+  "admissions": [
+    {
+      "ksh": "20230001",
+      "zkzh": "20230001",
+      "sfzh": "110101200001011234",
+      "xm": "张三",
+      "xb": "男",
+      "lqzt": "已录取",
+      "ssmc": "北京市",
+      "pcmc": "本科一批",
+      "klmc": "理科",
+      "jhxz": "普通计划",
+      "tdcj": "650",
+      "yxmc": "XX大学",
+      "lqzymc": "计算机科学与技术",
+      "xymc": "计算机学院",
+      "xqmc": "主校区",
+      "tzsbh": "2023XK001",
+      "emsdh": "EMS123456789",
+      "sfyzm": "1234",
+      "jtdz": "北京市海淀区XX路1号",
+      "yzbm": "100000",
+      "sjr": "张三",
+      "sjh": "13900000000",
+      "bdsj": "2025-07-01",
+      "bz": "新生奖学金获得者"
+    },
+    {
+      "ksh": "20230002",
+      "zkzh": "20230002",
+      "sfzh": "110101200001022345",
+      "xm": "李四",
+      "xb": "女",
+      "lqzt": "已录取",
+      "ssmc": "上海市",
+      "pcmc": "本科一批",
+      "klmc": "文科",
+      "jhxz": "国家专项",
+      "tdcj": "630",
+      "yxmc": "XX大学",
+      "lqzymc": "软件工程",
+      "xymc": "软件学院",
+      "xqmc": "新校区",
+      "tzsbh": "2023XK002",
+      "emsdh": "EMS123456789",
+      "sfyzm": "5678",
+      "jtdz": "上海市浦东新区XX路2号",
+      "yzbm": "200000",
+      "sjr": "李四",
+      "sjh": "13900000000",
+      "bdsj": "2025-07-01",
+      "bz": "艺术特长生"
+    }
+  ],
+  "batchId": "batch-20230628-001"
+}
