@@ -101,14 +101,100 @@ Content-Type: application/json
 }
 ```
 
-## 部署指南
+### 部署指南
 
-### 1. 安装Docker和Docker Compose
+#### 1. 安装Docker和Docker Compose
 
-#### Windows系统
-1. 下载Docker Desktop: https://www.docker.com/products/docker-desktop/
-2. 运行安装程序并按照向导完成安装
-3. 安装完成后启动Docker Desktop
+#### Windows服务器详细部署指南
+
+##### 1. 系统环境准备
+1. 确保服务器运行Windows Server 2016或更高版本
+2. 以管理员身份登录服务器
+3. 打开"服务器管理器"，点击"添加角色和功能"
+4. 在"功能"选项卡中勾选"Containers"功能并完成安装
+
+##### 2. 安装Docker Desktop
+1. 访问Docker官网下载Windows版本：https://www.docker.com/products/docker-desktop/
+2. 运行下载的Docker Desktop Installer.exe
+3. 安装向导中勾选以下选项：
+   - 启用WSL 2后端（推荐）
+   - 将Docker Desktop快捷方式添加到桌面
+4. 完成安装后重启服务器
+
+##### 3. 配置Docker
+1. 右键桌面Docker图标，选择"以管理员身份运行"
+2. 首次启动时会提示安装WSL 2内核组件，点击链接下载并安装
+3. 安装完成后Docker会自动启动
+4. 右键系统托盘中的Docker图标，选择"Settings"：
+   - 在"General"中勾选"Start Docker Desktop when you log in"
+   - 在"Resources"中分配至少4GB内存
+   - 在"Shared Drives"中共享项目所在驱动器
+
+##### 4. 获取项目代码
+1. 打开命令提示符(CMD)或PowerShell
+2. 执行以下命令克隆项目：
+```cmd
+git clone https://github.com/your-repo/admission-system.git
+cd admission-system
+```
+
+##### 5. 配置环境变量
+1. 复制.env.example文件为.env：
+```cmd
+copy .env.example .env
+```
+2. 用文本编辑器打开.env文件，配置以下参数：
+```ini
+DB_HOST=postgres
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=your_strong_password
+DB_DATABASE=admission
+PORT=3000
+API_KEYS=your_api_key_1,your_api_key_2
+```
+
+##### 6. 启动服务
+1. 在项目目录下打开PowerShell
+2. 执行以下命令启动服务：
+```powershell
+docker-compose up -d --build
+```
+3. 查看服务状态：
+```powershell
+docker-compose ps
+```
+4. 查看实时日志：
+```powershell
+docker-compose logs -f
+```
+
+##### 7. 验证部署
+1. 等待约2-3分钟让服务完全启动
+2. 测试健康检查接口：
+```cmd
+curl http://localhost:3000/api/admission/health
+```
+应返回：`{"status":"ok"}`
+
+##### 8. 配置防火墙
+1. 打开"Windows Defender 防火墙"
+2. 点击"高级设置"
+3. 新建入站规则：
+   - 规则类型：端口
+   - 特定本地端口：3000
+   - 允许连接
+   - 应用所有配置文件
+   - 名称：Admission-System-API
+
+##### 9. 常见问题解决
+- **问题1**：Docker启动失败
+  - 解决方案：确保已启用Hyper-V和容器功能
+- **问题2**：端口冲突
+  - 解决方案：修改.env中的PORT变量或停止占用端口的服务
+- **问题3**：数据库连接失败
+  - 解决方案：检查.env中的数据库配置是否正确
+
 
 #### Linux系统 (Ubuntu为例)
 ```bash
