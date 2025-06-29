@@ -6,6 +6,8 @@ import { errorMiddleware } from './middlewares/error.middleware';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import csrf from 'csurf';
+import cookieParser from 'cookie-parser';
 
 class App {
   public app: express.Application;
@@ -27,20 +29,92 @@ class App {
     });
     
     this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(cookieParser());
     this.app.use((req, res, next) => {
       console.log('JSON中间件处理后请求体:', req.body);
       next();
     });
     
-    this.app.use(cors());
+    // 严格CORS配置
+    this.app.use(cors({
+      origin: process.env.ALLOWED_ORIGINS?.split(',') || [],
+      methods: ['GET', 'POST', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'X-Requested-With'],
+      credentials: true,
+      exposedHeaders: ['Set-Cookie']
+    }));
+
+    // 调整安全头部配置以适应前端需求
     this.app.use(helmet({
       contentSecurityPolicy: {
         directives: {
           ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-          "script-src": ["'self'", "'unsafe-inline'"]
+          "script-src": ["'self'", "'unsafe-inline'"],
+          "style-src": ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+          "img-src": ["'self'", "data:"],
+          "font-src": ["'self'", "https://cdn.jsdelivr.net"],
+          "connect-src": ["'self'"]
         }
-      }
+      },
+      xssFilter: true,
+      noSniff: true,
+      hidePoweredBy: true
     }));
+
+    // 开发环境完全禁用CSRF保护
+    if (process.env.NODE_ENV === 'production') {
+      const csrf = require('csurf');
+      const csrfProtection = csrf({
+        cookie: {
+          key: '_csrf',
+          secure: true,
+          sameSite: 'none',
+          httpOnly: true
+        }
+      });
+      this.app.use('/api', csrfProtection);
+      
+      // 提供CSRF令牌端点
+      this.app.get('/api/csrf-token', (req, res) => {
+        res.json({ csrfToken: req.csrfToken() });
+      });
+    } else {
+      console.warn('开发环境已禁用CSRF保护');
+    }
+
+    // 提供CSRF令牌端点
+    this.app.get('/api/csrf-token', (req, res) => {
+      const token = Math.random().toString(36).substring(2);
+      res.cookie('_csrf', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      res.json({ csrfToken: token });
+    });
+    
+    // 提供CSRF令牌端点(带调试信息)
+    this.app.get('/api/csrf-token', (req, res) => {
+      const token = req.csrfToken();
+      console.log('生成CSRF Token:', {
+        token: token,
+        cookie: req.cookies._csrf,
+        headers: req.headers
+      });
+      res.cookie('XSRF-TOKEN', token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      res.json({
+        csrfToken: token,
+        debug: process.env.NODE_ENV === 'development' ? {
+          cookieName: '_csrf',
+          headerName: 'X-CSRF-Token'
+        } : undefined
+      });
+    });
     this.app.use(morgan('combined'));
     this.app.use(express.static('public'));
   }

@@ -180,3 +180,42 @@ GET http://localhost:3000/api/admission/health
 - `DB_*`: 数据库配置
 - `PORT`: 应用端口(默认3000)
 - `API_KEYS`: 逗号分隔的API密钥列表
+- `ALLOWED_ORIGINS`: 允许跨域访问的源(逗号分隔)
+- `NODE_ENV`: 环境变量(development/production)
+
+## 前端部署注意事项
+
+### 跨域配置
+1. 在`.env`文件中设置`ALLOWED_ORIGINS`为前端域名:
+   ```
+   ALLOWED_ORIGINS=https://your-frontend-domain.com,http://localhost:3000
+   ```
+
+2. 前端请求需要:
+   - 包含`credentials: 'include'`(fetch)或`withCredentials: true`(axios)
+   - 在生产环境获取并发送CSRF令牌
+
+### 内容安全策略(CSP)
+系统默认配置了以下CSP规则:
+- 允许的资源:
+  - 自托管资源('self')
+  - Bootstrap CDN(jsdelivr.net)
+  - 必要的inline脚本和样式
+
+如需修改，请调整`src/app.ts`中的helmet配置。
+
+### 开发环境特殊配置
+开发环境下:
+- 禁用CSRF保护
+- 放宽CSP限制
+- 允许本地跨域
+
+生产环境请确保:
+- 启用CSRF保护
+- 使用更严格的CSP策略
+- 限制允许的跨域源
+
+### 前端最佳实践
+1. 尽量减少inline脚本和样式
+2. 将外部资源本地化以提高安全性
+3. 生产环境考虑使用nonce代替unsafe-inline
